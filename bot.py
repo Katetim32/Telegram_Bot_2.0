@@ -3,6 +3,7 @@ import logging
 from aiogram import Bot, Dispatcher, types, F, html
 from aiogram.enums.dice_emoji import DiceEmoji
 from aiogram.filters.command import Command, CommandObject
+from aiogram.types import FSInputFile, URLInputFile, BufferedInputFile
 from config_reader import config
 from datetime import datetime
 # Включаем логирование, чтобы не пропустить важные сообщения
@@ -55,6 +56,43 @@ async def cmd_name(message: types.Message, command: CommandObject): #тк исп
     else:
         await message.answer("Укажите, пожалуйста, свое имя после команды /name.")
 
+@dp.message(Command("image"))
+async def upload_photo(message: types.Message):
+    file_ids = [] #здесь file_id отправленных файлов
+    '''with open("buffer_emulation.jpg", "rb") as image_from_buffer:
+        result = await message.answer_photo(
+            BufferedInputFile(
+                image_from_buffer.read(),
+                filename="image from buffer.jpg"
+            ),
+            caption="Изображение из буфера"
+        )
+        file_ids.append(result.photo[-1].file_id)'''
+
+    # Отправка файла из файловой системы
+    image_from_pc = FSInputFile("image_from_pc.jpg")
+    result = await message.answer_photo(
+        image_from_pc,
+        caption="Изображение из файла на компьютере"
+    )
+    file_ids.append(result.photo[-1].file_id)
+
+    # Отправка файла по ссылке
+    image_from_url = URLInputFile("https://picsum.photos/seed/groosha/400/300")
+    result = await message.answer_photo(
+        image_from_url,
+        caption="Изображение по ссылке"
+    )
+    file_ids.append(result.photo[-1].file_id)
+    await message.answer("Отправленные файлы:\n" + "\n".join(file_ids))
+# Скачивание файла ботом
+@dp.message(F.photo)
+async def download_photo(message: types.Message, bot: Bot):
+    await bot.download(message.photo[-1], destination=f"C:\\tmp\\{message.photo[-1].file_id}.jpg")
+@dp.message(F.sticker)
+async def download_sticker(message: types.Message, bot: Bot):
+    await bot.download(message.sticker, destination=f"C:\\tmp\\{message.sticker.file_id}.webp")
+
 #Сохранение форматирования
 """@dp.message(F.text)
 async def echo_with_time(message: types.Message):
@@ -87,6 +125,12 @@ async def extract_data(message: types.Message):
         f"E-mail: {html.quote(data['email'])}\n"
         f"Пароль: {html.quote(data['code'])}"
     )
+# Отвечает той же гифкой, что и прислали
+@dp.message(F.animation)
+async def echo_gif(message: types.Message):
+    await message.reply_animation(message.animation.file_id)
+
+
 
 #Запуск процесса поллинга новых апдейтов
 async def main():
